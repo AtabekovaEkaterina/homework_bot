@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import sys
@@ -7,7 +8,7 @@ from logging import StreamHandler
 
 import requests
 from dotenv import load_dotenv
-from telegram import Bot
+from telegram import Bot, TelegramError
 
 import exceptions
 
@@ -42,8 +43,10 @@ def send_message(bot, message):
     """Функция отправляет сообщение в Telegram чат."""
     try:
         bot.send_message(TELEGRAM_CHAT_ID, message)
-    except Exception as error:
-        logger.error(f'Сбой при отправке сообщения в Telegram: {error}')
+    except TelegramError as e:
+        logger.error(f'Сбой при отправке сообщения в Telegram: {e}')
+    except Exception as e:
+        logger.error(f'Сбой при отправке сообщения в Telegram: {e}')
     else:
         logger.info('Сообщение успешно отправлено')
 
@@ -54,21 +57,39 @@ def get_api_answer(current_timestamp):
     params = {'from_date': timestamp}
     try:
         response = requests.get(ENDPOINT, headers=HEADERS, params=params)
-    except Exception as error:
+    except requests.ConnectionError as e:
         logger.error(
-            f'Сбой в работе программы: Эндпоинт недоступен: {error}'
+            f'Эндпоинт недоступен: произошла ошибка подключения: {e}'
+        )
+    except requests.ReadTimeout as e:
+        logger.error(
+            f'Эндпоинт недоступен: данные не получены за отведенное время: {e}'
+        )
+    except requests.Timeout as e:
+        logger.error(
+            f'Эндпоинт недоступен: время запроса истекло: {e}'
+        )
+    except requests.RequestException as e:
+        logger.error(
+            f'Эндпоинт недоступен: произошло неоднозначное исключение: {e}'
         )
     if response.status_code != HTTPStatus.OK:
         raise exceptions.HTTPErrorException(
             'Эндпоинт недоступен: запрос не вернул статус 200'
         )
-    response = response.json()
+    try:
+        response = response.json()
+    except json.decoder.JSONDecodeError:
+        logger.error('ответ API не преобразован в json')
     return response
 
 
 def check_response(response):
     """Функция проверки ответа API на корректность."""
-    homework = response['homeworks']
+    try:
+        homework = response['homeworks']
+    except KeyError:
+        logger.error('ключ homeworks отсутствует')
     if not isinstance(response, dict):
         logger.error(
             'ответ API некорректностый: response не возвращает словарь'
@@ -90,6 +111,10 @@ def parse_status(homework):
     """Функция извлечения статуса домашней работы."""
     homework_name = homework.get('homework_name')
     homework_status = homework.get('status')
+    if homework_status is None and len(homework_status) == 0:
+        raise ValueError(
+            'Получено некорректное значение status, None или пустая строка'
+        )
     if homework_status not in HOMEWORK_STATUSES:
         raise KeyError('Не найден корректный статус')
     verdict = HOMEWORK_STATUSES[homework_status]
@@ -122,9 +147,10 @@ def main():
                 send_message(bot, message)
             current_timestamp = int(time.time()) - RETRY_TIME
             time.sleep(RETRY_TIME)
-
-        except Exception as error:
-            message = f'Сбой в работе программы: {error}'
+        except exceptions.HTTPErrorException:
+            logger.error('Эндпоинт недоступен: запрос не вернул статус 200')
+        except Exception as e:
+            message = f'Сбой в работе программы: {e}'
             logger.critical(message)
             send_message(bot, message)
             time.sleep(RETRY_TIME)
