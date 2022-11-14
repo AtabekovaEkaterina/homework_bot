@@ -156,8 +156,6 @@ def main():
                 send_message(bot, message)
             current_timestamp = int(time.time()) - RETRY_TIME
             time.sleep(RETRY_TIME)
-        except exceptions.HTTPErrorException:
-            logger.error('Эндпоинт недоступен: запрос не вернул статус 200')
         except Exception as e:
             message = f'Сбой в работе программы: {e}'
             logger.critical(message)
