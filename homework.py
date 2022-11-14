@@ -100,13 +100,13 @@ def check_response(response):
             raise TypeError(
                 'ответ API некорректностый: response не возвращает словарь'
             )
-    if not isinstance(homework, list):
-        logger.error(
-            'ответ API некорректностый: значние homework не является списком'
-        )
-        raise ValueError(
-            'ответ API некорректностый: значние homework не является списком'
-        )
+        if not isinstance(homework, list):
+            logger.error(
+                'ответ API некорректностый: значние homework не список'
+            )
+            raise ValueError(
+                'ответ API некорректностый: значние homework не список'
+            )
     return homework
 
 
