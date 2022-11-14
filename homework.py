@@ -73,15 +73,17 @@ def get_api_answer(current_timestamp):
         logger.error(
             f'Эндпоинт недоступен: произошло неоднозначное исключение: {e}'
         )
-    if response.status_code != HTTPStatus.OK:
-        raise exceptions.HTTPErrorException(
-            'Эндпоинт недоступен: запрос не вернул статус 200'
-        )
+    else:
+        if response.status_code != HTTPStatus.OK:
+            raise exceptions.HTTPErrorException(
+                'Эндпоинт недоступен: запрос не вернул статус 200'
+            )
     try:
         response = response.json()
     except json.decoder.JSONDecodeError:
         logger.error('ответ API не преобразован в json')
-    return response
+    else:
+        return response
 
 
 def check_response(response):
@@ -90,13 +92,14 @@ def check_response(response):
         homework = response['homeworks']
     except KeyError:
         logger.error('ключ homeworks отсутствует')
-    if not isinstance(response, dict):
-        logger.error(
-            'ответ API некорректностый: response не возвращает словарь'
-        )
-        raise TypeError(
-            'ответ API некорректностый: response не возвращает словарь'
-        )
+    else:
+        if not isinstance(response, dict):
+            logger.error(
+                'ответ API некорректностый: response не возвращает словарь'
+            )
+            raise TypeError(
+                'ответ API некорректностый: response не возвращает словарь'
+            )
     if not isinstance(homework, list):
         logger.error(
             'ответ API некорректностый: значние homework не является списком'
@@ -110,13 +113,17 @@ def check_response(response):
 def parse_status(homework):
     """Функция извлечения статуса домашней работы."""
     homework_name = homework.get('homework_name')
+    if homework is None and len(homework_name) == 0:
+        raise ValueError(
+            'Получено некорректное значение homework_name'
+        )
     homework_status = homework.get('status')
     if homework_status is None and len(homework_status) == 0:
         raise ValueError(
-            'Получено некорректное значение status, None или пустая строка'
+            'Получено некорректное значение status'
         )
     if homework_status not in HOMEWORK_STATUSES:
-        raise KeyError('Не найден корректный статус')
+        raise KeyError('Не найдено возможное значение статуса')
     verdict = HOMEWORK_STATUSES[homework_status]
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
