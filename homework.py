@@ -78,12 +78,13 @@ def get_api_answer(current_timestamp):
             raise exceptions.HTTPErrorException(
                 'Эндпоинт недоступен: запрос не вернул статус 200'
             )
-    try:
-        response = response.json()
-    except json.decoder.JSONDecodeError:
-        logger.error('ответ API не преобразован в json')
-    else:
-        return response
+    if response is not None:
+        try:
+            response = response.json()
+        except json.decoder.JSONDecodeError:
+            logger.error('ответ API не преобразован в json')
+        else:
+            return response
 
 
 def check_response(response):
@@ -107,7 +108,8 @@ def check_response(response):
             raise ValueError(
                 'ответ API некорректностый: значние homework не список'
             )
-    return homework
+    if homework is not None:
+        return homework
 
 
 def parse_status(homework):
