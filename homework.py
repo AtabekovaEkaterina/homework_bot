@@ -57,6 +57,10 @@ def get_api_answer(current_timestamp):
     params = {'from_date': timestamp}
     try:
         response = requests.get(ENDPOINT, headers=HEADERS, params=params)
+    except ValueError:
+        logger.error(
+            'Переменная response не найдена'
+        )
     except requests.ConnectionError as e:
         logger.error(
             f'Эндпоинт недоступен: произошла ошибка подключения: {e}'
@@ -73,18 +77,15 @@ def get_api_answer(current_timestamp):
         logger.error(
             f'Эндпоинт недоступен: произошло неоднозначное исключение: {e}'
         )
-    else:
-        if response.status_code != HTTPStatus.OK:
-            raise exceptions.HTTPErrorException(
-                'Эндпоинт недоступен: запрос не вернул статус 200'
-            )
-    if response is not None:
-        try:
-            response = response.json()
-        except json.decoder.JSONDecodeError:
-            logger.error('ответ API не преобразован в json')
-        else:
-            return response
+    if response.status_code != HTTPStatus.OK:
+        raise exceptions.HTTPErrorException(
+            'Эндпоинт недоступен: запрос не вернул статус 200'
+        )
+    try:
+        response = response.json()
+    except json.decoder.JSONDecodeError:
+        logger.error('Ответ API не преобразован в json')
+    return response
 
 
 def check_response(response):
@@ -93,23 +94,21 @@ def check_response(response):
         homework = response['homeworks']
     except KeyError:
         logger.error('ключ homeworks отсутствует')
-    else:
-        if not isinstance(response, dict):
-            logger.error(
-                'ответ API некорректностый: response не возвращает словарь'
-            )
-            raise TypeError(
-                'ответ API некорректностый: response не возвращает словарь'
-            )
-        if not isinstance(homework, list):
-            logger.error(
-                'ответ API некорректностый: значние homework не список'
-            )
-            raise ValueError(
-                'ответ API некорректностый: значние homework не список'
-            )
-    if homework is not None:
-        return homework
+    if not isinstance(response, dict):
+        logger.error(
+            'Ответ API некорректностый: response не возвращает словарь'
+        )
+        raise TypeError(
+            'Ответ API некорректностый: response не возвращает словарь'
+        )
+    if not isinstance(homework, list):
+        logger.error(
+            'Ответ API некорректностый: значние homework не список'
+        )
+        raise ValueError(
+            'Ответ API некорректностый: значние homework не список'
+        )
+    return homework
 
 
 def parse_status(homework):
