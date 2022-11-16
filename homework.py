@@ -19,7 +19,7 @@ TELEGRAM_TOKEN = os.getenv('telegram_token')
 TELEGRAM_CHAT_ID = os.getenv('telegram_chat_id')
 
 RETRY_TIME = 600
-ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
+ENDPOINT = ''
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
 
@@ -61,22 +61,27 @@ def get_api_answer(current_timestamp):
         logger.error(
             'Переменная response не найдена'
         )
+        raise
     except requests.ConnectionError as e:
         logger.error(
             f'Эндпоинт недоступен: произошла ошибка подключения: {e}'
         )
+        raise
     except requests.ReadTimeout as e:
         logger.error(
             f'Эндпоинт недоступен: данные не получены за отведенное время: {e}'
         )
+        raise
     except requests.Timeout as e:
         logger.error(
             f'Эндпоинт недоступен: время запроса истекло: {e}'
         )
+        raise
     except requests.RequestException as e:
         logger.error(
             f'Эндпоинт недоступен: произошло неоднозначное исключение: {e}'
         )
+        raise
     if response.status_code != HTTPStatus.OK:
         raise exceptions.HTTPErrorException(
             'Эндпоинт недоступен: запрос не вернул статус 200'
@@ -94,6 +99,7 @@ def check_response(response):
         homework = response['homeworks']
     except KeyError:
         logger.error('ключ homeworks отсутствует')
+        raise
     if not isinstance(response, dict):
         logger.error(
             'Ответ API некорректностый: response не возвращает словарь'
